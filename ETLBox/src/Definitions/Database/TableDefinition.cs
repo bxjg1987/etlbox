@@ -106,25 +106,23 @@ namespace ETLBox.ControlFlow
             var readMetaSql = new SqlTask(
 $@"
 SELECT  cols.name
-     , CASE WHEN tpes.name IN ('varchar','char','binary','varbinary') 
-            THEN CONCAT ( UPPER(tpes.name)
-                        , '('
-                        , IIF (cols.max_length = -1, 'MAX', CAST(cols.max_length as varchar(20))) 
-                        , ')'
-                        )
+     , CASE WHEN tpes.name IN ('varchar','char','binary','varbinary')
+            THEN  UPPER(tpes.name)
+                        + '('
+                        + case when cols.max_length = -1 then 'MAX' else CAST(cols.max_length as varchar(20)) end
+                        + ')'
             WHEN tpes.name IN ('nvarchar','nchar') 
-            THEN CONCAT ( UPPER(tpes.name)
-                        , '('
-                        , IIF (cols.max_length = -1, 'MAX', CAST( (cols.max_length/2) as varchar(20))) 
-                        , ')'
-                        )
+            THEN  UPPER(tpes.name)
+                        + '('
+                        + case when cols.max_length = -1 then 'MAX' else CAST( (cols.max_length/2) as varchar(20)) end
+                        + ')'
             WHEN tpes.name IN ('decimal','numeric') 
-            THEN CONCAT ( UPPER(tpes.name)
-                        , '('
-                        , cols.precision
-                        ,','
-                        ,cols.scale, ')'
-                        )
+            THEN UPPER(tpes.name)
+                       + '('
+                       + CAST( cols.precision as varchar)
+                        +','
+                        +CAST( cols.scale as varchar)
+                        + ')'
             ELSE UPPER(tpes.name)
        END AS type_name
      , cols.is_nullable
@@ -160,8 +158,9 @@ LEFT JOIN sys.default_constraints defconstr
     AND defconstr.parent_column_id = cols.column_id
 LEFT JOIN sys.computed_columns compCol
     ON compCol.object_id = cols.object_id
-WHERE ( CONCAT (sc.name,'.',tbl.name) ='{TN.UnquotatedFullName}' OR  tbl.name = '{TN.UnquotatedFullName}' )
-    AND tbl.type IN ('U','V')
+WHERE ( sc.name+'.'+tbl.name ='{TN.UnquotatedFullName}' OR  tbl.name = '{TN.UnquotatedFullName}' )
+    AND 
+    tbl.type IN ('U','V')
     AND tpes.name <> 'sysname'
 ORDER BY cols.column_id
 "
